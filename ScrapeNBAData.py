@@ -24,11 +24,6 @@ def getPlayerDF(year, dataSet):
            'adj_shooting'   #This does not work
     Returns: a pandas dataframe
     '''
-    ### Older code usind BeautifulSoup.  Now just using pandas.
-    #html = urlopen(f"https://www.basketball-reference.com/leagues/NBA_{year}_{dataSet}.html")
-    #soup = BeautifulSoup(html, features="html.parser")
-    #table = soup.findAll('table')
-    #return pd.read_html(str(table))[0]
     return pd.read_html(f"https://www.basketball-reference.com/leagues/NBA_{year}_{dataSet}.html")[0]
 
 def getPlayerData(year):
@@ -57,6 +52,19 @@ def getTeamData(year):
     Params:
         1) year - the ending season. i.e. 2023-2024 season has a year 2024
     Returns: a list of pandas dataframes with the following index
+      From 2001 to 2015     
+        0: Eastern conference standings
+        1: Western conference standings
+        2: Per game stats - team
+        3: Per game stats - opponent
+        4: Total stats - team
+        5: Total stats - opponent
+        6: Per 100 poss - team
+        7: Per 100 poss - opponent
+        8: Advanced stats - team
+        9: Shooting stats - team
+        10: Shooting stats - opponent
+      From 2016 to current
         0: Eastern conference standings
         1: Western conference standings
         2: Eastern division standings
@@ -71,18 +79,9 @@ def getTeamData(year):
         11: Shooting stats - team
         12: Shooting stats - opponent
     '''
-    ''' Old code
-    dfList = []
-    html = urlopen(f"https://www.basketball-reference.com/leagues/NBA_{year}.html")
-    soup = BeautifulSoup(html, features = 'html.parser')
-    tables = soup.findAll('table')
-
-    for table in tables:
-        if table.findParent("table") is None:
-            if table.findParent("table") is None:
-                dfList.append(pd.read_html(str(table))[0])
-    '''
-    return pd.read_html(f"https://www.basketball-reference.com/leagues/NBA_{year}.html")
+    df = pd.read_html(f"https://www.basketball-reference.com/leagues/NBA_{year}.html")
+    return df
+    
 
 
 def getIndividualCareer(playerName):
@@ -163,6 +162,6 @@ def plotIndividualShotChart(playerName, year):
     plt.plot(df_made['x'], df_made['y'], 'go', label='Made', alpha=0.5)
     plt.plot(df_miss['x'], df_miss['y'], 'rx', label='Missed', alpha=0.5)
     plt.legend(loc='upper left',numpoints=1)
-    plt.title(f'Season{year -1}-{year}: Box Chart')
+    plt.title(f'{playerName}: {year -1}-{year}: Box Chart')
     plt.show()
     return plt
