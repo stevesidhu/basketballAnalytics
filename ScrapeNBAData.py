@@ -6,7 +6,9 @@ from bs4 import BeautifulSoup
 from bs4 import Comment
 import pandas as pd
 import requests
+import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 from DrawCourt import draw_court
 
 def getPlayerDF(year, dataSet):
@@ -130,7 +132,7 @@ def getIndividualShotData(playerName, year):
         df_shots = df_shots.append({
             'x': shot['style'].split(';')[1].split(':')[1][:-2],
             'y' : shot['style'].split(';')[0].split(':')[1][:-2],
-            'make': shot['tip'].split('<br>')[2].split()[0],
+            'result': shot['tip'].split('<br>')[2].split()[0],
             'shot': shot['tip'].split('<br>')[2].split()[1][0],
             'game': shot['tip'].split('<br>')[0],
             'time': shot['tip'].split('<br>')[1],
@@ -140,7 +142,7 @@ def getIndividualShotData(playerName, year):
             )
     return df_shots
 
-def plotIndividualShotChart(playerName, year):
+def plotIndividualShotChart(playerID, year, xbins, ybins):
     '''
     Creates a shot chart for a player, includes all field goals taken that season.
     Params:
@@ -148,20 +150,54 @@ def plotIndividualShotChart(playerName, year):
         2) year - the ending season. i.e. 2023-2024 season has a year 2024
     Returns: a pyplot plot
     '''
-    ## Collect shot data, separate makes and misse
-    df_shots = getIndividualShotData(playerName,year)
-    df_shots['y'] = df_shots['y'].astype('float') -50.
+    ## Collect shot data, separate makes and missed
+    df_shots = getIndividualShotData(playerID, year)
+    df_shots['y'] = df_shots['y'].astype('float') -47.5
     df_shots['x'] = df_shots['x'].astype('float') -240.
-    df_made = df_shots[df_shots.make == 'Made']
-    df_miss = df_shots[df_shots.make == 'Missed']
 
-    #plot using Draw_Court function (made by Pietro Giampa, PhD)
-    draw_court(outer_lines=True)
-    plt.xlim(-250,250)
-    plt.ylim(-49,424)
-    plt.plot(df_made['x'], df_made['y'], 'go', label='Made', alpha=0.5)
-    plt.plot(df_miss['x'], df_miss['y'], 'rx', label='Missed', alpha=0.5)
-    plt.legend(loc='upper left',numpoints=1)
-    plt.title(f'{playerName}: {year -1}-{year}: Box Chart')
+    fig, axs = plt.subplots(2,2, figsize=(7,6.5),
+                       gridspec_kw={'hspace': 0, 
+                                    'wspace': 0,
+                                    'width_ratios': [5, 1],
+                                    'height_ratios': [1, 5]}
+                       )
+
+    ## Upper
+    sns.histplot(df_shots[df_shots.result == "Made"].x, kde = True, bins = xbins,
+             ax = axs[0,0], color = 'b', kde_kws=dict(cut=3))
+    sns.histplot(df_shots[df_shots.result == "Missed"].x, kde = True, bins = xbins, 
+             ax = axs[0,0], color = 'r', alpha = .3, kde_kws=dict(cut=3))
+
+    axs[0,0].axis('off')
+    axs[0,1].axis('off')
+    axs[1,1].axis('off')
+
+    ## Right
+    sns.histplot(y = df_shots[df_shots.result == "Made"].y, kde = True, bins = ybins, 
+             ax = axs[1,1], color = 'b', kde_kws=dict(cut=2))
+    sns.histplot(y = df_shots[df_shots.result == "Missed"].y, kde = True, bins = ybins, 
+             ax = axs[1,1], color = 'r', alpha = .25, kde_kws=dict(cut=3))
+    ## Scatter
+    sns.scatterplot(data = df_shots, x = df_shots[df_shots.result == "Made"].x, y = df_shots[df_shots.result == "Made"].y,
+               marker = 'o', color = 'b', alpha = 1, ax = axs[1,0], label = 'Made')
+    sns.scatterplot(data = df_shots, x = df_shots[df_shots.result == "Missed"].x, y = df_shots[df_shots.result == "Missed"].y,
+               marker = 'X', color = 'r', alpha = .4, ax = axs[1,0], label = 'Missed')
+    draw_court(axs[1,0], outer_lines=True)
+
+    axs[1,0].set_xlabel('')
+    axs[1,0].set_ylabel('')
+    axs[1,0].set_xticklabels([])
+    axs[1,0].set_yticklabels([])
+    axs[1,0].tick_params(labelbottom='off', labelleft='off')
+
+    axs[1,0].set_ylim(422.5,-47.5)
+    axs[1,0].set_xlim(-250,250)
+
+    axs[0,0].set_xlim(-250,250)
+    axs[1,1].set_ylim(422.5,-47.5)
+
+    avgDist = np.sqrt(np.square(df_shots.x) + np.square(df_shots.y)).mean() / 10
+    totalShots = len(df_shots.x)
+    axs[1,0].set_title(f'{playerID}: {year}\n Total shots: {totalShots}; Avg Dist: {avgDist:.1f} ft', y=1.2)
     plt.show()
     return plt
